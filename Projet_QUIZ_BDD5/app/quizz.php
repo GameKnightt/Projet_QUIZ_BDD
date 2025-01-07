@@ -30,19 +30,16 @@ try {
 }
 
 //On prépare ici la requête pour récupérer les questions
-
 $requetes_questions = "SELECT matiere, enonce FROM questions";
 $reponse_questions = $connexion->query($requetes_questions);
 
 //On récupère également toutes les réponses disponibles
-
 $requetes_answers = "SELECT id_question, reponse FROM reponses";
 $reponse_answers = $connexion->query($requetes_answers);
 
 $compteur_questions = 0;
 
 //Pour chaque question, on stocke la matière et l'énoncé
-
 while ($donnees = $reponse_questions->fetch())
 {
 	$matieres[$compteur_questions] = $donnees['matiere'];
@@ -52,7 +49,6 @@ while ($donnees = $reponse_questions->fetch())
 $reponse_questions->closeCursor();
 
 //Pour chaque réponse, l'id de la questions associée et le texte
-
 $compteur_reponses = 0;
 
 while ($donnees = $reponse_answers->fetch())
@@ -65,7 +61,6 @@ while ($donnees = $reponse_answers->fetch())
 $compteur_questions = 0;
 
 //Puis pour finir on affiche le formulaire
-
 echo "<form action='traitement.php' method='GET'>";
 echo "<div class='form-group mb-3'>";
 echo "<label for='nom'>Votre nom:</label>";
@@ -80,7 +75,7 @@ foreach($matieres as $matiere)
 		if($id_questions[$i] == $compteur_questions + 1)
 		{
 			echo "<div class='form-check'>";
-			echo "<input type='checkbox' class='form-check-input' name='reponse_".($i+1)."'>".$answers[$i];
+			echo "<input type='radio' class='form-check-input' name='reponse_".$compteur_questions."' value='".($i+1)."'>".$answers[$i];
 			echo "</div>";
 		}
 	}
@@ -96,3 +91,8 @@ $connexion = null; // deconnexion
 </div>
 </body>
 </html>
+<?php 
+// Set page specific subtitle
+$header_subtitle = "Le Super Quizz !";
+include 'header.php';
+?>

@@ -91,17 +91,47 @@ while ($donnees = $rep_reponses->fetch()) {
     $compteur_reponses++;
 }
 
-//On calcule ici le score de la personne ; pour chaque réponse sélectionnée, on ajoute les points associés
-
+// Initialize score
 $score_final = 0;
+$feedback = array();
 
-for($i=0;$i<$nb_rep;$i++)
-{
-	$champ = 'reponse_'.($i+1);
-	if(isset($_GET[$champ]))
-	{
-		$score_final += $scores[$i];
-	}
+// Group answers by question
+$answers_by_question = array();
+for($i = 0; $i < count($id_questions); $i++) {
+    $question_id = $id_questions[$i];
+    $answers_by_question[$question_id][] = array(
+        'reponse' => $reponses[$i],
+        'points' => $scores[$i],
+        'index' => $i
+    );
+}
+
+// Check answers and calculate score
+for($q = 0; $q < $nb_que; $q++) {
+    $champ = 'reponse_' . $q;
+    if(isset($_GET[$champ])) {
+        $selected_index = $_GET[$champ] - 1;
+        $question_id = $q + 1;
+        
+        // Find if selected answer is correct
+        foreach($answers_by_question[$question_id] as $answer) {
+            if($answer['index'] == $selected_index) {
+                if($answer['points'] == 1) {
+                    $score_final++;
+                    $feedback[$q] = array(
+                        'correct' => true,
+                        'message' => 'Bonne réponse !'
+                    );
+                } else {
+                    $feedback[$q] = array(
+                        'correct' => false,
+                        'message' => 'Mauvaise réponse.'
+                    );
+                }
+                break;
+            }
+        }
+    }
 }
 
 echo "<p><strong>Votre score final est : ".$score_final." / ".$nb_que."</strong></p>";
@@ -112,6 +142,9 @@ $req_insert_score->execute([
     ':nom' => $nom,
     ':score' => $score_final
 ]);
+
+// After showing the score
+echo "<a href='perso.php?nom=" . urlencode($nom) . "' class='btn btn-primary'>Voir mon profil</a>";
 
 // Récupération du top 10
 $req_top10 = "SELECT nom, score, date_score 
@@ -142,31 +175,38 @@ else
     echo "<p class='text-left'>Il y a encore du travail à faire.</p>";
 }
 
-// Affichage des questions et réponses
-$compteur_questions = 0;
-foreach($matieres as $matiere) {
-    echo "<div class='container my-4 p-2 bg-warning'><h2>".$matiere."</h2></div>";
+// Display questions and answers with feedback
+foreach($matieres as $index => $matiere) {
+    echo "<div class='container my-4 p-2 bg-warning'><h2>" . $matiere . "</h2></div>";
     echo "<div class='container my-4 p-2' style='border:1px black solid;'>";
-    echo "<p>".$enonces[$compteur_questions]."</p>";
+    echo "<p>" . $enonces[$index] . "</p>";
     
-    for($i=0; $i<count($reponses); $i++) {
-        if($id_questions[$i] == $compteur_questions + 1) {
-            $champ = 'reponse_'.($i+1);
-            $estSelectionnee = isset($_GET[$champ]);
-            $estBonne = ($scores[$i] == 1);
-            
-            if($estSelectionnee) {
-                $couleur = $estBonne ? 'success' : 'danger';
-                echo "<div class='alert alert-$couleur'>";
-                echo $reponses[$i];
-                echo $estBonne ? " ✓" : " ✗";
-                echo "</div>";
-            }
+    if(isset($feedback[$index])) {
+        $alert_class = $feedback[$index]['correct'] ? 'success' : 'danger';
+        echo "<div class='alert alert-$alert_class'>" . $feedback[$index]['message'] . "</div>";
+    }
+    
+    foreach($answers_by_question[$index + 1] as $answer) {
+        $selected = isset($_GET['reponse_' . $index]) && ($_GET['reponse_' . $index] - 1) == $answer['index'];
+        $class = '';
+        
+        if($selected) {
+            $class = $answer['points'] == 1 ? 'text-success fw-bold' : 'text-danger fw-bold';
+        } elseif($answer['points'] == 1) {
+            $class = 'text-success';
         }
+        
+        echo "<p class='$class'>";
+        echo $answer['reponse'];
+        if($selected) {
+            echo $answer['points'] == 1 ? ' ✓' : ' ✗';
+        }
+        echo "</p>";
     }
     echo "</div>";
-    $compteur_questions++;
 }
+
+echo "<h3>Score final : $score_final / $nb_que</h3>";
 
 echo "</div>";
 
